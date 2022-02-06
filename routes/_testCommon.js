@@ -60,7 +60,13 @@ async function commonBeforeAll() {
     password: "password3",
     isAdmin: false,
   });
+  await db.query(`
+        INSERT INTO jobs (title, salary, equity, company_handle)
+        VALUES ('Accountant', 7, '0', 'c1'),
+               ('Developer', 5000000, 1.0, 'c2')`);
 }
+
+
 
 async function commonBeforeEach() {
   await db.query("BEGIN");
@@ -75,7 +81,9 @@ async function commonAfterAll() {
 }
 
 
-const u1Token = createToken({ username: "u1", isAdmin: false });
+
+const u1Token = createToken({ username: "u1", isAdmin: true });
+const u2Token = createToken({ username: "u2", isAdmin: false });
 
 
 module.exports = {
@@ -84,4 +92,5 @@ module.exports = {
   commonAfterEach,
   commonAfterAll,
   u1Token,
+  u2Token,
 };

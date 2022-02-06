@@ -206,3 +206,35 @@ describe("remove", function () {
     }
   });
 });
+
+/************************************** Query Param GET */
+
+describe("queryParamGet", () => {
+
+  test("GET with name and maximum Params", async() =>{
+    const data = {
+      name: 'c',
+      maxEmployees: '2'
+    };
+    const results = await Company.queryParamGet(data);
+    expect(results.length).toEqual(2);
+  });
+
+  test("GET with min param", async() => {
+    const data = {
+      minEmployees: 3
+    };
+    const results = await Company.queryParamGet(data);
+    expect(results.length).toEqual(1);
+  });
+
+  test("GET with min and max param", async() => {
+    const data = {
+      minEmployees: 2,
+      maxEmployees: 2
+    };
+    const results = await Company.queryParamGet(data);
+    expect(results.length).toEqual(1);
+  });
+
+});

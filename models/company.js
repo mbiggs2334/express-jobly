@@ -1,8 +1,8 @@
 "use strict";
 
 const db = require("../db");
-const { BadRequestError, NotFoundError } = require("../expressError");
-const { sqlForPartialUpdate } = require("../helpers/sql");
+const { BadRequestError, NotFoundError, ExpressError } = require("../expressError");
+const { sqlForPartialUpdate, sqlForGetQueryParams, sqlForGetQueryParamsCompany } = require("../helpers/sql");
 
 /** Related functions for companies. */
 
@@ -71,20 +71,39 @@ class Company {
 
   static async get(handle) {
     const companyRes = await db.query(
-          `SELECT handle,
-                  name,
-                  description,
-                  num_employees AS "numEmployees",
-                  logo_url AS "logoUrl"
-           FROM companies
+          `SELECT c.handle,
+                  c.name,
+                  c.description,
+                  c.num_employees AS "numEmployees",
+                  c.logo_url AS "logoUrl",
+                  j.id,
+                  j.title,
+                  j.salary,
+                  j.equity
+           FROM companies AS c
+           RIGHT JOIN jobs AS j
+           ON c.handle = j.company_handle
            WHERE handle = $1`,
         [handle]);
 
     const company = companyRes.rows[0];
 
     if (!company) throw new NotFoundError(`No company: ${handle}`);
-
-    return company;
+    return {
+      company: {
+        handle: company.handle,
+        name: company.name,
+        descrition: company.description,
+        numEmployees: company.numEmployees,
+        logoUrl: company.logoUrl
+      },
+      jobs: {
+        id: company.id,
+        title: company.title,
+        salary: company.salary,
+        equity: company.equity
+      }
+    };
   }
 
   /** Update company data with `data`.
@@ -140,6 +159,37 @@ class Company {
 
     if (!company) throw new NotFoundError(`No company: ${handle}`);
   }
+
+  /** Queries for companies based on given query parameters
+   * 
+   * Returns results
+   */ 
+  static async queryParamGet(queryParams){
+    if(queryParams.minEmployees > queryParams.maxEmployees){
+      throw new ExpressError(`ERROR: Parmeter 'minEmployees' exceeds 'maxEmployees'`, 400);
+    };
+    const sqlWhereCol = Object.keys(queryParams);
+    const sqlWhereVal = Object.values(queryParams);
+    const whereSt = sqlForGetQueryParamsCompany(sqlWhereCol);
+
+    if(sqlWhereCol.indexOf('name') !== -1){
+      let idx = sqlWhereCol.indexOf('name')
+      sqlWhereVal[idx] = '%' + sqlWhereVal[idx] + '%';
+    };
+
+    const results = await db.query(`
+    SELECT handle,
+            name,
+            description,
+            num_employees AS "numEmployees",
+            logo_url AS "logoUrl"
+           FROM companies
+           WHERE ${whereSt}`, [...sqlWhereVal]);
+
+    return results.rows
+  }
+  
+
 }
 
 
